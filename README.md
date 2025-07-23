@@ -8,3 +8,7 @@ This application uses a webcam feed to detect hand gestures in real time and tra
 - **Gesture-to-command mapping** for drone control
 - **Debouncing** to prevent command flickering
 
+## Setup
+
+A requirements.txt file will be provided for easy installation.
+
