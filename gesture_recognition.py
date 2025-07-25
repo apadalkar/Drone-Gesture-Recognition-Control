@@ -23,7 +23,7 @@ def recognize_gesture(frame):
 
     if results.multi_hand_landmarks:
         # TODO: Add gesture classification logic here
-        # For now, just return 'hover' if a hand is detected
+        # rn return 'hover' if a hand is detected
         return 'hover'
     else:
         return None 
