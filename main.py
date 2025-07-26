@@ -13,19 +13,19 @@ if __name__ == "__main__":
             if not ret:
                 print("Failed to grab frame")
                 break
-            # Mirror the frame 
-            frame = cv2.flip(frame, 1)
-            # run gesture recognition and get landmarks
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Mirror the frame for display
+            frame_display = cv2.flip(frame, 1)
+            # Run gesture recognition on original frame
+            command = recognize_gesture(frame)
+            # Draw landmarks on display frame
+            image_rgb = cv2.cvtColor(frame_display, cv2.COLOR_BGR2RGB)
             results = hands_detector.process(image_rgb)
-            command = None
             if results.multi_hand_landmarks:
-                command = recognize_gesture(frame)
                 for hand_landmarks in results.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(
-                        frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                        frame_display, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             print("Command: ", command)
-            cv2.imshow('Gesture Recognition - Press q to quit', frame)
+            cv2.imshow('Gesture Recognition - Press q to quit', frame_display)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             time.sleep(1 / OUTPUT_HZ)

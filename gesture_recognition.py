@@ -8,32 +8,82 @@ mp_drawing = mp.solutions.drawing_utils
 hands_detector = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.7
 )
 
 FINGER_TIPS = [4, 8, 12, 16, 20]
-FINGER_PIPS = [2, 6, 10, 14, 18]
+FINGER_PIPS = [3, 6, 10, 14, 18] 
+FINGER_MIPS = [2, 5, 9, 13, 17]  
 
 # determine if a finger is extended
-def is_finger_extended(landmarks, tip_idx, pip_idx):
-    return landmarks[tip_idx].y < landmarks[pip_idx].y
+def is_finger_extended(landmarks, finger_idx):
+    tip_idx = FINGER_TIPS[finger_idx]
+    pip_idx = FINGER_PIPS[finger_idx]
+    mcp_idx = FINGER_MIPS[finger_idx]
+    
+    if finger_idx == 0:  # thumb edge case (horizontal extension)
+        return abs(landmarks[tip_idx].x - landmarks[mcp_idx].x) > 0.04
+    
+    else:  # other fingers vertical extension
+        tip_above_pip = landmarks[tip_idx].y < landmarks[pip_idx].y - 0.01
+        pip_above_mcp = landmarks[pip_idx].y <= landmarks[mcp_idx].y + 0.01
+        return tip_above_pip and pip_above_mcp
 
 # hand orientation (rough direction of index finger)
 def get_hand_direction(landmarks):
-    dx = landmarks[8].x - landmarks[0].x
-    dy = landmarks[8].y - landmarks[0].y
+    index_tip = landmarks[8]
+    index_mcp = landmarks[5]
+    wrist = landmarks[0]
     
-    if abs(dx) > 0.1 and abs(dx) > abs(dy) * 0.5:
-        if dx > 0.1:
+    dx = index_tip.x - index_mcp.x
+    dy = index_tip.y - index_mcp.y
+    
+    min_threshold = 0.08
+    
+    if abs(dx) < min_threshold and abs(dy) < min_threshold:
+        return None
+    
+    # determine main direction
+    if abs(dx) > abs(dy):  
+        if dx > min_threshold:
             return 'right'
-        elif dx < -0.1:
+        elif dx < -min_threshold:
             return 'left'
-    if dy > 0.07:
-        return 'down'
-    if dy < -0.1:
-        return 'up'
+    else:  
+        if dy > min_threshold:
+            return 'down'
+        elif dy < -min_threshold:
+            return 'up'
+    
     return None
+
+def calculate_gesture_confidence(landmarks, gesture_type):
+    #Calculate confidence score for detected gesture.
+
+    base_confidence = 0.5
+    
+    wrist = landmarks[0]
+    middle_mcp = landmarks[9]
+    hand_size = abs(wrist.y - middle_mcp.y)
+    
+    if hand_size > 0.15: 
+        base_confidence += 0.2
+    
+    if gesture_type in ['move_right', 'move_left', 'ascend', 'descend']:
+        index_tip = landmarks[8]
+        index_pip = landmarks[6]
+        index_mcp = landmarks[5]
+        
+        tip_pip_dist = abs(index_tip.x - index_pip.x) + abs(index_tip.y - index_pip.y)
+        pip_mcp_dist = abs(index_pip.x - index_mcp.x) + abs(index_pip.y - index_mcp.y)
+        
+        if tip_pip_dist > 0.02 and pip_mcp_dist > 0.02: 
+            base_confidence += 0.2
+    
+    return min(base_confidence, 1.0)
+
+
 
 def recognize_gesture(frame):
     """
@@ -46,26 +96,40 @@ def recognize_gesture(frame):
     results = hands_detector.process(image_rgb)
 
     if not results.multi_hand_landmarks:
-        return None
+        return None, 0.0
 
     hand_landmarks = results.multi_hand_landmarks[0].landmark
 
     # finger states
-    fingers = [is_finger_extended(hand_landmarks, tip, pip) for tip, pip in zip(FINGER_TIPS, FINGER_PIPS)]
-    thumb, index, middle, ring, pinky = fingers
+    fingers_extended = [is_finger_extended(hand_landmarks, i) for i in range(5)]
+    thumb, index, middle, ring, pinky = fingers_extended
 
+    extended_count = sum(fingers_extended)
+    
+    gesture = None
+    confidence = 0.0
+    
     # open palm
-    if all(fingers):
-        return 'hover'
-    # pointing gestures (only index extended)
-    if index and not middle and not ring and not pinky:
+    if extended_count >= 4:
+        gesture = 'hover'
+        confidence = calculate_gesture_confidence(hand_landmarks, gesture)
+        
+    # pointing: index finger extended
+    elif index and extended_count <= 2:  # allow for thumb to be extended too
         direction = get_hand_direction(hand_landmarks)
-        if direction == 'right':
-            return 'move_right'
-        elif direction == 'left':
-            return 'move_left'
-        elif direction == 'up':
-            return 'ascend'
-        elif direction == 'down':
-            return 'descend'
-    return None 
+        if direction:
+            gesture_map = {
+                'right': 'move_right',
+                'left': 'move_left',
+                'up': 'ascend',
+                'down': 'descend'
+            }
+            gesture = gesture_map[direction]
+            confidence = calculate_gesture_confidence(hand_landmarks, gesture)
+    
+    # return gesture only if confidence is above threshold
+    min_confidence_threshold = 0.6
+    if confidence >= min_confidence_threshold:
+        return gesture, confidence
+    else:
+        return None, confidence
