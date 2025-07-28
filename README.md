@@ -8,3 +8,4 @@ Install requirements.txt, run venv via `source venv/bin/activate`, then run `pyt
 ## Commands
 - `q`: quit program
 - `d`: debug info
+- 'b': bounding box toggle
