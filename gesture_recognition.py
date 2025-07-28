@@ -137,7 +137,21 @@ def recognize_gesture(frame):
         return None, confidence
 
 
-def get_landmark_drawing_frame(frame):
+def get_hand_bounding_box(landmarks, frame_width, frame_height):
+    # calculate bounding box coordinates for detected hand
+    x_coords = [landmark.x * frame_width for landmark in landmarks]
+    y_coords = [landmark.y * frame_height for landmark in landmarks]
+
+    padding = 20
+    x_min = max(0, int(min(x_coords)) - padding)
+    y_min = max(0, int(min(y_coords)) - padding)
+    x_max = min(frame_width, int(max(x_coords)) + padding)
+    y_max = min(frame_height, int(max(y_coords)) + padding)
+
+    return x_min, y_min, x_max, y_max
+
+
+def get_landmark_drawing_frame(frame, show_bounding_box=True):
     # get frame with hand landmarks drawn for visualization
     frame_display = cv2.flip(frame, 1)
     image_rgb = cv2.cvtColor(frame_display, cv2.COLOR_BGR2RGB)
@@ -152,5 +166,23 @@ def get_landmark_drawing_frame(frame):
                 mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=2),
                 mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2),
             )
+            if show_bounding_box:
+                h, w, _ = frame_display.shape
+                x_min, y_min, x_max, y_max = get_hand_bounding_box(
+                    hand_landmarks.landmark, w, h
+                )
+
+                cv2.rectangle(
+                    frame_display, (x_min, y_min), (x_max, y_max), (0, 0, 255), 2
+                )
+                cv2.putText(
+                    frame_display,
+                    "HAND DETECTED",
+                    (x_min, y_min - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 255),
+                    2,
+                )
 
     return frame_display

@@ -1,19 +1,21 @@
 import cv2
 import time
 from gesture_recognition import recognize_gesture, get_landmark_drawing_frame
-from gesture_recognition import mp_drawing, mp_hands, hands_detector
 from debounce import Debouncer
 
+OUTPUT_HZ = 10
 
 def main():
-    OUTPUT_HZ = 10
+
     SHOW_DEBUG_INFO = True
+    SHOW_BOUNDING_BOX = True
 
     cap = cv2.VideoCapture(0)
     debouncer = Debouncer()
 
     frame_time = 1.0 / OUTPUT_HZ
     last_output_time = 0
+    
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -28,7 +30,7 @@ def main():
             print("Command:", stable_command)
             last_output_time = current_time
 
-        display_frame = get_landmark_drawing_frame(frame)
+        display_frame = get_landmark_drawing_frame(frame, show_bounding_box=SHOW_BOUNDING_BOX)
 
         if SHOW_DEBUG_INFO:
             status_text = f"Command: {stable_command if stable_command else 'None'}"
@@ -61,6 +63,8 @@ def main():
             break
         elif key == ord("d"):
             SHOW_DEBUG_INFO = not SHOW_DEBUG_INFO
+        elif key == ord('b'):
+            SHOW_BOUNDING_BOX = not SHOW_BOUNDING_BOX
 
     cap.release()
     cv2.destroyAllWindows()
