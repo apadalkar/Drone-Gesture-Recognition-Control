@@ -1,14 +1,10 @@
 # Drone Gesture Recognition Control
 
-## Project Overview
-This application uses a webcam feed to detect hand gestures in real time and translates them into control signals for a drone. It will leverage [MediaPipe](https://mediapipe.dev/) to track hand landmarks and classify gestures.
-
-## Goals
-- **Real-time hand gesture recognition** using a webcam and MediaPipe
-- **Gesture-to-command mapping** for drone control
-- **Debouncing** to prevent command flickering
+Using a webcam feed to detect hand gestures in real time and translating them into control signals for a drone. Leverages MediaPipe to track hand landmarks and classify gestures. Uses debouncing to prevent command flickering.
 
 ## Setup
+Install requirements.txt, run venv via `source venv/bin/activate`, then run `python main.py`
 
-A requirements.txt file will be provided for easy installation.
-
+## Commands
+- `q`: quit program
+- `d`: debug info
