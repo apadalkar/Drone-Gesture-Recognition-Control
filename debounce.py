@@ -127,10 +127,30 @@ class Debouncer:
 class SimpleDebouncer:
     """
     Simplified debouncer for basic use cases.
+    Requires a gesture to be detected multiple times consecutively before changing commands.
     """
 
     def __init__(self, required_count=3):
         self.required_count = required_count
+        self.last_gesture = None
+        self.count = 0
+        self.current_command = None
+
+    def update(self, gesture, confidence=1.0):
+        # new gesture detection, returns stabilized command
+        if gesture == self.last_gesture:
+            self.count += 1
+        else:
+            self.count = 1
+            self.last_gesture = gesture
+        
+        if self.count >= self.required_count:
+            self.current_command = gesture
+        
+        return self.current_command
+
+    def reset(self):
+        """Reset the debouncer state."""
         self.last_gesture = None
         self.count = 0
         self.current_command = None
